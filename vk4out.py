@@ -20,13 +20,16 @@ Created
 
 Last Modified
 -------------
-26 June 2018
+19 July 2018
 
 """
 
+import logging
 import numpy as np
 from PIL import Image
 import os
+
+log = logging.getLogger('vk4_driver.vk4out')
 
 
 layer_dict = {'R': ['red', 'peak'], 'G': ['green', 'peak'], 'B': ['blue', 'peak'],
@@ -43,6 +46,7 @@ def output_file_name_maker(args):
 
     :param args: list of argparse arguments
     """
+    log.debug("Entering output_file_name_maker()")
     path = os.getcwd() + '/out_files/'
     if not os.path.isdir(path):
         os.mkdir(path)
@@ -51,22 +55,25 @@ def output_file_name_maker(args):
         out_file_name = path + args.input[:-4] + '_' + args.type + '_' + args.layer
     else:
         out_file_name = path + args.output
+
+    log.debug("Exiting output_file_name_maker()")
     return out_file_name
 
-
+"""
 def list_of_tuples(arr):
-    """list_of_tuples
+    """"""list_of_tuples
 
     This function converts a numpy array of 3 element lists containing RGB
     data into a list of tuples containing that same data for the purpose of
     straightforward image production using the PIL library
 
     :param: arr: numpy array of 3 element lists
-    """
+    """"""
     tup_list = []
     for elem in arr:
         tup_list.append((elem[0], elem[1], elem[2]))
     return tup_list
+"""
 
 
 def create_composite_rgb_values(vk4_container, layer_list):
@@ -78,6 +85,7 @@ def create_composite_rgb_values(vk4_container, layer_list):
     :param vk4_container: VK4container object
     :param layer_list: list of color layers
     """
+    log.debug("Entering create_composite_rgb_values()")
     width = vk4_container.image_width
     height = vk4_container.image_height
     comp_rgb_array = np.zeros(width * height, dtype=np.uint32)
@@ -87,37 +95,12 @@ def create_composite_rgb_values(vk4_container, layer_list):
         for rgb in lay:
             comp_rgb_array[i] = comp_rgb_array[i] + ((rgb[0] << 16) + (rgb[1] << 8) + (rgb[2]))
             i = i + 1
-    print('****** composite rgb array ******')
-    print(comp_rgb_array)
+    log.debug("In create_composite_rgb_values()\n\tComposite RGB array:\n\t{}" \
+              .format(comp_rgb_array))
 
+    log.debug("Exiting create_composite_rgb_values()")
     return comp_rgb_array
 
-""" currently not in use
-def create_separate_rgb_values(vk4_container, layer_list):
-    width = vk4_container.image_width
-    height = vk4_container.image_height
-    temp_array = np.zeros((width * height, 3), dtype = np.uint8)
-
-    for lay in layer_list:
-        i = 0
-        for rgb in lay:
-            temp_array[i][0] += rgb[0]
-            temp_array[i][1] += rgb[1]
-            temp_array[i][2] += rgb[2]
-            i = i + 1
-
-    dt = np.dtype("(1,3)u1")
-    sep_array = np.zeros(width * height, dtype=object)
-    i = 0
-    for elem in temp_array:
-        sep_array[i] = ' '.join([str(elem[0]), str(elem[1]), str(elem[2])])
-        # sep_array[i] = (elem[0], elem[1], elem[2])
-        i = i + 1
-    print('****** separate rgb array ******')
-    print(temp_array)
-
-    return sep_array
-"""
 
 def create_array_from_rgb_layers(vk4_container, layer_list):
     """create_array_from_rgb_layers
@@ -128,6 +111,7 @@ def create_array_from_rgb_layers(vk4_container, layer_list):
     :param vk4_container: VK4container object
     :param layer_list: list of color layers
     """
+    log.debug("Entering create_array_from_rgb_layers")
     width = vk4_container.image_width
     height = vk4_container.image_height
 
@@ -139,11 +123,11 @@ def create_array_from_rgb_layers(vk4_container, layer_list):
             new_array[i][1] += rgb[1]
             new_array[i][2] += rgb[2]
             i = i + 1
-    print(6*"*" + " array for rgb image output " + 6*"*")
-    print(new_array)
+    log.debug("In create_array_from_rgb_layers()\n\tArray for rgb image " \
+              "output:\n{}".format(new_array))
+    log.debug("Exiting create_array_from_rgb_layers")
 
-    # A list of tuples facilitates JPEG and PNG image production using PIL
-    return new_array  # list_of_tuples(new_array)
+    return new_array
 
 
 def get_data_from_layers(vk4_container, layers, step, is_image=False):
@@ -160,14 +144,22 @@ def get_data_from_layers(vk4_container, layers, step, is_image=False):
     :param step: defines step to iterate through layers argument
     :param is_image: True if output is to be an image
     """
+    log.debug("Entering get_data_from_layers()")
     holder = []
     for x in range(0, len(layers), step):
         lay = layers[x:x + step]
+        log.debug("In get_data_from_layers()\n\tCurrent layer to append: %s" % lay)
+        if lay not in layer_dict.keys():
+            log.error("In get_data_from_layers()\n\tLayer {}: {} from param " \
+                      "layers: {} is not a valid layer. See documentation."
+                       .format(x, lay, layers))
         holder.append(vk4_container.get_single_color_values(layer_dict[lay][0], layer_dict[lay][1]))
 
     if is_image:
+        log.debug("Exiting get_data_from_layers() where is_image is {}".format(is_image))
         return create_array_from_rgb_layers(vk4_container, holder)
     else:
+        log.debug("Exiting get_data_from_layers() where is_image is {}".format(is_image))
         return create_composite_rgb_values(vk4_container, holder)
         # return create_separate_rgb_values(vk4_container, holder)
 
@@ -181,12 +173,16 @@ def output_data(vk4_container, args):
     :param vk4_container: VK4container
     :param args: list of argparse arguments
     """
+    log.info("Entering vk4out.py via output_data()")
+    log.debug("Entering output_data()\n\tOutput type: {}\n\tData Layers: {}"
+              .format(args.type, args.layer))
+
     layer = args.layer
     is_image_dict = {'csv': False, 'hcsv': False, 'jpeg': True, 'png': True, 'tiff': True}
     single_noncomposite_layer_options = {'H': vk4_container.height_data,
                                          'L': vk4_container.light_intensity_data}
 
-    print("Output type: %s" % args.type)
+    log.debug("Output type: %s" % args.type)
     is_image = is_image_dict[args.type]
 
     # If the data of interest is height or light intensity values, we can
@@ -202,9 +198,13 @@ def output_data(vk4_container, args):
         data = get_data_from_layers(vk4_container, layer, 1, is_image)
 
     if is_image:
+        log.debug("Exiting output_data() where is_image is {}".format(is_image))
         output_image(vk4_container, args, data)
     else:
+        log.debug("Exiting output_data() where is_image is {}".format(is_image))
         output_csv(vk4_container, args, data)
+
+    log.info("Exiting vk4out.py from output_data()")
 
 
 def output_csv(vk4_container, args, data):
@@ -216,12 +216,15 @@ def output_csv(vk4_container, args, data):
     :param args: list of argparse arguments
     :param data: numpy array of values
     """
+    log.debug("Entering output_csv()\n\tData Layer: {}".format(args.layer))
+
     out_file_name = output_file_name_maker(args) + '.csv'
 
     width = vk4_container.image_width
     height = vk4_container.image_height
 
     data = np.reshape(data, (height, width))
+    log.debug("\n\tData:\n\t%r".format(data))
 
     with open(out_file_name, 'w') as out_file:
         if args.type == 'hcsv':
@@ -230,8 +233,7 @@ def output_csv(vk4_container, args, data):
             out_file.write('\n')
         np.savetxt(out_file, data, delimiter=',', fmt='%d')
 
-    # with open("test_sep.csv", 'w') as out_file:
-     #   np.savetxt(out_file, data2, delimiter=',', fmt='%s')
+    log.debug("Exiting output_csv()")
 
 
 def scale_data(vk4_container, args, data):
@@ -245,6 +247,7 @@ def scale_data(vk4_container, args, data):
     :param args: list of argparse arguments
     :param data: numpy array of image data
     """
+    log.debug("Entering scale_data()\n\tData Layer: {}".format(args.layer))
     layer = args.layer
     scale = 0.0
     if layer == 'L':
@@ -265,6 +268,7 @@ def scale_data(vk4_container, args, data):
         new_array[i] = val * scale
         i = i + 1
 
+    log.debug("Exiting scale_data()")
     return new_array
 
 
@@ -277,6 +281,8 @@ def output_image(vk4_container, args, data):
     :param args: list of argparse arguments
     :param data: list of tuples for jpeg and png images
     """
+    log.debug("Entering output_image()\n\t Data Layer: {}".format(args.layer))
+
     not_rgb_list = ['L', 'H']
     out_type = args.type
     layer = args.layer
@@ -286,12 +292,17 @@ def output_image(vk4_container, args, data):
     width = vk4_container.image_width
     height = vk4_container.image_height
     if layer in not_rgb_list:
-        data = scale_data(vk4_container, args, data)
+        # data = scale_data(vk4_container, args, data)
+        log.debug("In output_image()\n\tData:\n{}".format(data))
         image = Image.fromarray(np.reshape(data, (height, width)), 'F')
     else:
+        log.debug("In output_image()\n\tData:\n{}".format(data))
         image = Image.fromarray(np.reshape(data, (height, width, 3)), 'RGB')
+
     image.info = create_file_meta_data(vk4_container, args)
     image.save(out_file_name, args.type.upper())
+
+    log.debug("Exiting output_image()")
 
 
 def create_file_meta_data(vk4_container, args):
@@ -304,6 +315,8 @@ def create_file_meta_data(vk4_container, args):
     :param vk4_container: VK4container object
     :param args: list of argparse arguments
     """
+    log.debug("Entering create_file_meta_data()")
+
     header_list = list()
     header_list.append(args.layer)
     header_list.append('\n')
@@ -409,11 +422,42 @@ def create_file_meta_data(vk4_container, args):
 
     out_type = args.type
     if out_type == 'hcsv':
+        log.debug("Exiting create_file_meta_data() where out_type == %s" % out_type)
         return np.reshape(header_list, (len(header_list) // 2, 2))
     else:
         # Can use a dict to attach info to an image using PILs Image module
         meta_dict = dict()
         for n in range(0, len(header_list), 2):
             meta_dict[header_list[n]] = header_list[n + 1]
+
+        log.debug("Exiting create_file_meta_data() where out_type == %s" % out_type)
         return meta_dict
 
+
+
+""" currently not in use
+def create_separate_rgb_values(vk4_container, layer_list):
+    width = vk4_container.image_width
+    height = vk4_container.image_height
+    temp_array = np.zeros((width * height, 3), dtype = np.uint8)
+
+    for lay in layer_list:
+        i = 0
+        for rgb in lay:
+            temp_array[i][0] += rgb[0]
+            temp_array[i][1] += rgb[1]
+            temp_array[i][2] += rgb[2]
+            i = i + 1
+
+    dt = np.dtype("(1,3)u1")
+    sep_array = np.zeros(width * height, dtype=object)
+    i = 0
+    for elem in temp_array:
+        sep_array[i] = ' '.join([str(elem[0]), str(elem[1]), str(elem[2])])
+        # sep_array[i] = (elem[0], elem[1], elem[2])
+        i = i + 1
+    print('****** separate rgb array ******')
+    print(temp_array)
+
+    return sep_array
+"""

@@ -14,13 +14,15 @@ Created
 
 Last Modified
 -------------
-22 June 2018
+19 July 2018
 
 """
+import logging
 import struct
 import numpy as np
 # import readbinary as rb
 
+log = logging.getLogger('vk4_driver.vk4extract')
 
 # extract offsets for data sections of vk4 file
 def extract_offsets(in_file):
@@ -31,6 +33,8 @@ def extract_offsets(in_file):
 
     :param in_file: open file obj, must be vk4 file
     """
+    log.debug("Entering extract_offsets()")
+
     offsets = dict()
     in_file.seek(12)
     offsets['meas_conds'] = struct.unpack('<I', in_file.read(4))[0]
@@ -50,6 +54,8 @@ def extract_offsets(in_file):
     offsets['string_data'] = struct.unpack('<I', in_file.read(4))[0]
     # not sure if reserved is necessary
     offsets['reserved'] = struct.unpack('<I', in_file.read(4))[0]
+
+    log.debug("Exiting extract_offsets()")
     return offsets
 
 
@@ -72,6 +78,8 @@ def extract_measurement_conditions(offset_dict, in_file):
         'color peak' section of the file, according to the vk4 files I have
         worked with.
     """
+    log.debug("Entering extract_measurement_conditions()")
+
     measurement_conditions = dict()
     measurement_conditions['name'] = 'measurement_conditions'
     in_file.seek(offset_dict['meas_conds'])
@@ -167,6 +175,8 @@ def extract_measurement_conditions(offset_dict, in_file):
     measurement_conditions['lower_position'] = struct.unpack('<I', in_file.read(4))[0]
     measurement_conditions['light_effective_bit_depth'] = struct.unpack('<I', in_file.read(4))[0]
     measurement_conditions['height_effective_bit_depth'] = struct.unpack('<I', in_file.read(4))[0]
+
+    log.debug("Exiting extract_measurement_conditions()")
     return measurement_conditions
 
 
@@ -181,6 +191,8 @@ def extract_color_data(offset_dict, color_type, in_file):
     :param color_type: string - type of data, must be 'peak' or 'light'
     :param in_file: open file obj, must be vk4 file
     """
+    log.debug("Entering extract_color_data()")
+
     rgb_types = {'peak': 'color_peak', 'light': 'color_light'}
     rgb_color_data = dict()
     rgb_color_data['name'] = 'RGB ' + color_type
@@ -204,6 +216,8 @@ def extract_color_data(offset_dict, color_type, in_file):
         i = i + 1
 
     rgb_color_data['data'] = rgb_color_arr
+
+    log.debug("Exiting extract_color_data()")
     return rgb_color_data
 
 
@@ -219,6 +233,8 @@ def extract_img_data(offset_dict, d_type, in_file):
     :param d_type: string - type of data, must be 'height' or 'light'
     :param in_file: open file obj, must be vk4 file
     """
+    log.debug("Entering extract_img_data()")
+
     data_types = {'height': ('height', np.uint32, '<I', 4),
                   'light': ('light', np.uint16, '<H', 2)}
     data = dict()
@@ -250,6 +266,8 @@ def extract_img_data(offset_dict, d_type, in_file):
         array[i] = struct.unpack(int_type, in_file.read(bytesize))[0]
         i = i + 1
     data['data'] = array
+
+    log.debug("Exiting extract_img_data()")
     return data
 
 
@@ -263,6 +281,8 @@ def extract_string_data(offset_dict, in_file):
     :param offset_dict: dictionary - offset values in vk4
     :param in_file: open file obj, must be vk4 file
     """
+    log.debug("Entering extract_string_data()")
+
     string_data = dict()
     string_data['name'] = 'string_data'
     in_file.seek(offset_dict['string_data'])
@@ -270,11 +290,13 @@ def extract_string_data(offset_dict, in_file):
 
     # string_data['title'] = in_file.read(title_length)
     string_data['title'] = string_from_chars(in_file, title_length)
-    print(string_data['title'])
+    log.debug(string_data['title'])
     lens_name_length = struct.unpack('<I', in_file.read(4))[0]
 
     # string_data['lens_name'] = in_file.read(lens_name_length)
     string_data['lens_name'] = string_from_chars(in_file, lens_name_length)
+
+    log.debug("Exiting extract_string_data()")
     return string_data
 
 

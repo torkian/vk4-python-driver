@@ -42,7 +42,7 @@ To install, download the 4 source files:
 First, the module `vk4_driver` can be used as a script with the following args:
 
 ```sh
-$ python3 vk4_driver -i<vk4 filename> -t<type of output> -l<layers of data> 
+$ python3 vk4_driver.py -i<vk4 filename> -t<type of output> -l<layers of data> 
     -o<optional output filename> -v<optional verbose logging>
 ```
 

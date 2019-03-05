@@ -1,4 +1,4 @@
-# vk4_driver
+# vk4 driver
 
 vk4_driver is a tool used to extract data from Keyence profilometry vk4 format
 data files and provide useful output formats for analysis (csv, tiff, jpeg, 

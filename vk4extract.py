@@ -7,6 +7,7 @@ from a vk4 file, which are stored in dictionaries.
 Author
 ------
 Wylie Gunn
+Behzad Torkian
 
 Created
 -------
